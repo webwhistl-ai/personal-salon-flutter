@@ -8,14 +8,19 @@ import '../screens/customer/portfolio_screen.dart';
 import '../screens/customer/book_screen.dart';
 import '../screens/customer/profile_screen.dart';
 import '../screens/admin/admin_layout.dart';
+import '../screens/auth/login_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/',
+  initialLocation: '/', // Start at home, do not force login
   routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) {

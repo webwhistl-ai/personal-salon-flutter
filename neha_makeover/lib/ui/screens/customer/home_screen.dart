@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/theme.dart';
+import '../../../providers/service_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final servicesAsync = ref.watch(servicesProvider);
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -16,7 +20,20 @@ class HomeScreen extends StatelessWidget {
             _buildTrustIndicators(context),
             const SizedBox(height: 48),
             _buildSectionTitle(context, 'Signature Services'),
-            _buildSignatureServices(context),
+            servicesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, st) => Center(child: Text('Error loading services: \$e')),
+              data: (services) {
+                final popularServices = services.where((s) => s.isPopular).toList();
+                if (popularServices.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Text('No signature services found at the moment.', style: TextStyle(color: Colors.grey)),
+                  );
+                }
+                return _buildSignatureServices(context, popularServices);
+              },
+            ),
             const SizedBox(height: 48),
             _buildSectionTitle(context, 'Why Women Choose Us'),
             _buildTrustSection(context),
@@ -126,14 +143,15 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSignatureServices(BuildContext context) {
+  Widget _buildSignatureServices(BuildContext context, List popularServices) {
     return SizedBox(
       height: 280,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        itemCount: 4,
+        itemCount: popularServices.length,
         itemBuilder: (context, index) {
+          final service = popularServices[index];
           return Container(
             width: 200,
             margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -142,21 +160,24 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 120,
-                    width: double.infinity,
-                    color: AppTheme.mutedMauve,
-                    child: const Icon(Icons.image, color: Colors.white54, size: 40),
-                  ),
+                  if (service.imageUrl.isNotEmpty)
+                    Image.network(service.imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover)
+                  else
+                    Container(
+                      height: 120,
+                      width: double.infinity,
+                      color: AppTheme.mutedMauve,
+                      child: const Icon(Icons.image, color: Colors.white54, size: 40),
+                    ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Bridal Package ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 2, overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 4),
-                          const Text('₹15,000 • 3 Hours', style: TextStyle(color: Colors.grey)),
+                          Text('₹${service.price.toStringAsFixed(0)} • ${service.durationMinutes} mins', style: const TextStyle(color: Colors.grey)),
                           const Spacer(),
                           TextButton(
                             onPressed: () {},

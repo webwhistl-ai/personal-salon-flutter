@@ -1,31 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/theme.dart';
+import '../../../providers/service_provider.dart';
+import '../../../models/service_model.dart';
+import '../../../models/service_category.dart';
 
-class ServicesScreen extends StatelessWidget {
+class ServicesScreen extends ConsumerWidget {
   const ServicesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final servicesAsync = ref.watch(servicesProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Services & Packages'),
         backgroundColor: AppTheme.ivory,
         surfaceTintColor: Colors.transparent,
       ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Sidebar categories for larger screens, top tabs for mobile (simulated with standard list for now)
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: 6,
-              itemBuilder: (context, index) {
-                return _buildServiceCategoryGroup(context, index);
-              },
-            ),
-          ),
-        ],
+      body: categoriesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.roseGold)),
+        error: (err, stack) => Center(child: Text('Error: \$err')),
+        data: (categories) {
+          if (categories.isEmpty) {
+            return const Center(child: Text('No categories available.'));
+          }
+
+          return servicesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.roseGold)),
+            error: (err, stack) => Center(child: Text('Error loading services: \$err')),
+            data: (services) {
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  final categoryServices = services.where((s) => s.categoryId == category.id).toList();
+
+                  if (categoryServices.isEmpty) return const SizedBox.shrink();
+
+                  return _buildServiceCategoryGroup(context, category, categoryServices);
+                },
+              );
+            },
+          );
+        },
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
@@ -60,24 +80,23 @@ class ServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildServiceCategoryGroup(BuildContext context, int index) {
-    final categories = ['Facials', 'Hair Care', 'Waxing', 'Nails', 'Bridal', 'Add-ons'];
+  Widget _buildServiceCategoryGroup(BuildContext context, ServiceCategory category, List<ServiceModel> services) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16.0),
           child: Text(
-            categories[index],
+            category.name,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
         ),
-        ...List.generate(3, (i) => _buildServiceCard(context, categories[index], i)),
+        ...services.map((service) => _buildServiceCard(context, service)),
       ],
     );
   }
 
-  Widget _buildServiceCard(BuildContext context, String category, int index) {
+  Widget _buildServiceCard(BuildContext context, ServiceModel service) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -89,17 +108,17 @@ class ServicesScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Premium $category Treatment ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 4),
-                  const Text('Deep cleanse, exfoliation, and luxury mask.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(service.shortDescription, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Text('₹1,500', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.deepPlum)),
+                      Text('₹${service.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.deepPlum)),
                       const SizedBox(width: 16),
                       const Icon(Icons.access_time, size: 14, color: Colors.grey),
                       const SizedBox(width: 4),
-                      const Text('45 mins', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text('${service.durationMinutes} mins', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ],
@@ -110,7 +129,7 @@ class ServicesScreen extends StatelessWidget {
               children: [
                 OutlinedButton(
                   onPressed: () {
-                    _showServiceDetails(context);
+                    _showServiceDetails(context, service);
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -126,7 +145,7 @@ class ServicesScreen extends StatelessWidget {
     );
   }
 
-  void _showServiceDetails(BuildContext context) {
+  void _showServiceDetails(BuildContext context, ServiceModel service) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -140,23 +159,29 @@ class ServicesScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.mutedMauve,
+                if (service.imageUrl.isNotEmpty)
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(16),
+                    child: Image.network(service.imageUrl, height: 200, width: double.infinity, fit: BoxFit.cover),
+                  )
+                else
+                  Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppTheme.mutedMauve,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Center(child: Icon(Icons.spa, size: 64, color: Colors.white)),
                   ),
-                  child: const Center(child: Icon(Icons.spa, size: 64, color: Colors.white)),
-                ),
                 const SizedBox(height: 24),
-                Text('Premium Treatment', style: Theme.of(context).textTheme.headlineMedium),
+                Text(service.name, style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                const Text('₹1,500 • 45 mins', style: TextStyle(fontSize: 16, color: AppTheme.deepPlum, fontWeight: FontWeight.bold)),
+                Text('₹${service.price.toStringAsFixed(0)} • ${service.durationMinutes} mins', style: const TextStyle(fontSize: 16, color: AppTheme.deepPlum, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 24),
-                const Text('What is included:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                const Text('• 10 minute consultation\n• Double cleanse\n• Extraction\n• Custom luxury mask\n• Shoulder massage'),
+                Text(service.detailedDescription),
                 const Spacer(),
                 SizedBox(
                   width: double.infinity,

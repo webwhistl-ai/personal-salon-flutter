@@ -1,11 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/theme.dart';
+import '../../../providers/auth_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    final user = authState.value;
+
+    String initials = 'U';
+    String displayName = 'Guest User';
+    String email = '';
+
+    if (user != null) {
+      displayName = user.displayName ?? 'User';
+      email = user.email ?? 'Guest Access';
+      if (displayName.isNotEmpty) {
+        initials = displayName.substring(0, 1).toUpperCase();
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Profile'),
@@ -16,17 +34,18 @@ class ProfileScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 40,
                 backgroundColor: AppTheme.roseGold,
-                child: Text('SA', style: TextStyle(color: Colors.white, fontSize: 24)),
+                backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+                child: user?.photoURL == null ? Text(initials, style: const TextStyle(color: Colors.white, fontSize: 24)) : null,
               ),
               const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Sarah Anderson', style: Theme.of(context).textTheme.headlineMedium),
-                  const Text('+91 98765 43210', style: TextStyle(color: Colors.grey)),
+                  Text(displayName, style: Theme.of(context).textTheme.headlineMedium),
+                  Text(email, style: const TextStyle(color: Colors.grey)),
                 ],
               ),
             ],
@@ -57,7 +76,10 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           TextButton(
-            onPressed: () {},
+            onPressed: () async {
+              await ref.read(authRepositoryProvider).signOut();
+              if (context.mounted) context.go('/login');
+            },
             child: const Text('Log Out', style: TextStyle(color: Colors.red)),
           ),
         ],
