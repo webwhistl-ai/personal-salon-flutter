@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../theme/theme.dart';
+import '../../../providers/portfolio_provider.dart';
+import '../../../models/portfolio_item.dart';
 
-class PortfolioScreen extends StatelessWidget {
+class PortfolioScreen extends ConsumerWidget {
   const PortfolioScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final portfolioAsync = ref.watch(portfolioProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transformations'),
@@ -29,15 +34,24 @@ class PortfolioScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: MasonryGridView.count(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        padding: const EdgeInsets.all(16),
-        itemCount: 10,
-        itemBuilder: (context, index) {
-          final isLarge = index % 3 == 0;
-          return _buildPortfolioItem(context, isLarge, index);
+      body: portfolioAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, st) => Center(child: Text('Error loading portfolio: $e')),
+        data: (items) {
+          if (items.isEmpty) {
+            return const Center(child: Text('No transformations to show yet.'));
+          }
+          return MasonryGridView.count(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            padding: const EdgeInsets.all(16),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final isLarge = index % 3 == 0;
+              return _buildPortfolioItem(context, isLarge, items[index]);
+            },
+          );
         },
       ),
     );
@@ -56,7 +70,7 @@ class PortfolioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPortfolioItem(BuildContext context, bool isLarge, int index) {
+  Widget _buildPortfolioItem(BuildContext context, bool isLarge, PortfolioItem item) {
     return InkWell(
       onTap: () {
         // Show details/slider
@@ -74,28 +88,30 @@ class PortfolioScreen extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Image.network(
-                    'https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=2069&auto=format&fit=crop',
+                    item.imageUrl,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.grey),
                   ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(12),
+                  if (item.beforeImageUrl != null && item.beforeImageUrl!.isNotEmpty)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('Before / After', style: TextStyle(color: Colors.white, fontSize: 10)),
                       ),
-                      child: const Text('Before / After', style: TextStyle(color: Colors.white, fontSize: 10)),
-                    ),
-                  )
+                    )
                 ],
               ),
             ),
           ),
           const SizedBox(height: 8),
-          const Text('Bridal Glamour', style: TextStyle(fontWeight: FontWeight.bold)),
-          const Text('Subtle, glowing makeup for morning wedding.', style: TextStyle(fontSize: 12, color: Colors.grey), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(item.description, style: const TextStyle(fontSize: 12, color: Colors.grey), maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

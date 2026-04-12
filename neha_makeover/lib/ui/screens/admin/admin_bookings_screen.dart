@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../../providers/booking_flow_provider.dart';
+import '../../../models/booking_model.dart';
 
-class AdminBookingsScreen extends StatelessWidget {
+final allBookingsProvider = StreamProvider<List<BookingModel>>((ref) {
+  return ref.watch(bookingRepositoryProvider).getAllBookings();
+});
+
+class AdminBookingsScreen extends ConsumerWidget {
   const AdminBookingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bookingsAsync = ref.watch(allBookingsProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Bookings'),
@@ -53,36 +63,47 @@ class AdminBookingsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Expanded(
               child: Card(
-                child: ListView.separated(
-                  itemCount: 10,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final status = index == 0 ? 'Pending' : 'Confirmed';
-                    final color = index == 0 ? Colors.orange : Colors.green;
-                    return ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
-                      title: Text('Customer Name ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Bridal Makeup • ₹15,000'),
-                          Text('Oct 17, 2023 • 11:00 AM', style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: color.withAlpha(30), borderRadius: BorderRadius.circular(16)),
-                            child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+                child: bookingsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(child: Text('Error loading bookings: $e')),
+                  data: (bookings) {
+                    if (bookings.isEmpty) {
+                      return const Center(child: Text('No bookings found.'));
+                    }
+                    return ListView.separated(
+                      itemCount: bookings.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final booking = bookings[index];
+                        final status = booking.status[0].toUpperCase() + booking.status.substring(1);
+                        final color = status == 'Pending' ? Colors.orange : (status == 'Confirmed' ? Colors.green : Colors.grey);
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.all(16),
+                          leading: const CircleAvatar(child: Icon(Icons.person)),
+                          title: Text('Customer ${booking.customerId.substring(0, 5)}...', style: const TextStyle(fontWeight: FontWeight.bold)), // In a real app we join users collection
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${booking.serviceIds.length} Services • ₹${booking.totalPrice.toStringAsFixed(0)}'),
+                              Text(DateFormat('MMM d, yyyy • hh:mm a').format(booking.dateTime), style: const TextStyle(color: Colors.grey)),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
-                          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
-                        ],
-                      ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(color: color.withAlpha(30), borderRadius: BorderRadius.circular(16)),
+                                child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                              const SizedBox(width: 16),
+                              IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
+                              IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+                            ],
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

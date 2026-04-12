@@ -1,18 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import '../../theme/theme.dart';
+import '../../../providers/booking_flow_provider.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../models/booking_model.dart';
 
-class BookScreen extends StatefulWidget {
+class BookScreen extends ConsumerStatefulWidget {
   const BookScreen({super.key});
 
   @override
-  State<BookScreen> createState() => _BookScreenState();
+  ConsumerState<BookScreen> createState() => _BookScreenState();
 }
 
-class _BookScreenState extends State<BookScreen> {
+class _BookScreenState extends ConsumerState<BookScreen> {
   int _currentStep = 0;
+  bool _isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
+    final bookingState = ref.watch(bookingFlowProvider);
+
+    if (bookingState.selectedServices.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Book Appointment'), backgroundColor: AppTheme.ivory),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.spa_outlined, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text('No services selected yet.'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.go('/services'),
+                child: const Text('Browse Services'),
+              )
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book Appointment'),
@@ -21,11 +52,11 @@ class _BookScreenState extends State<BookScreen> {
       body: Stepper(
         type: StepperType.vertical,
         currentStep: _currentStep,
-        onStepContinue: () {
+        onStepContinue: () async {
           if (_currentStep < 3) {
             setState(() => _currentStep += 1);
           } else {
-            // Confirm booking
+            await _submitBooking();
           }
         },
         onStepCancel: () {
@@ -40,15 +71,17 @@ class _BookScreenState extends State<BookScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: details.onStepContinue,
-                    child: Text(_currentStep == 3 ? 'Confirm Booking' : 'Continue'),
+                    onPressed: _isSubmitting ? null : details.onStepContinue,
+                    child: _isSubmitting
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(_currentStep == 3 ? 'Confirm Booking' : 'Continue'),
                   ),
                 ),
                 if (_currentStep > 0) ...[
                   const SizedBox(width: 16),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: details.onStepCancel,
+                      onPressed: _isSubmitting ? null : details.onStepCancel,
                       child: const Text('Back'),
                     ),
                   ),
@@ -60,25 +93,25 @@ class _BookScreenState extends State<BookScreen> {
         steps: [
           Step(
             title: const Text('Services'),
-            content: _buildServicesStep(),
+            content: _buildServicesStep(bookingState),
             isActive: _currentStep >= 0,
             state: _currentStep > 0 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Date & Time'),
-            content: _buildDateTimeStep(),
+            content: _buildDateTimeStep(bookingState),
             isActive: _currentStep >= 1,
             state: _currentStep > 1 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Details'),
-            content: _buildDetailsStep(),
+            content: _buildDetailsStep(bookingState),
             isActive: _currentStep >= 2,
             state: _currentStep > 2 ? StepState.complete : StepState.indexed,
           ),
           Step(
             title: const Text('Confirm'),
-            content: _buildConfirmStep(),
+            content: _buildConfirmStep(bookingState),
             isActive: _currentStep >= 3,
           ),
         ],
@@ -86,18 +119,66 @@ class _BookScreenState extends State<BookScreen> {
     );
   }
 
-  Widget _buildServicesStep() {
+  Future<void> _submitBooking() async {
+    setState(() => _isSubmitting = true);
+
+    final bookingState = ref.read(bookingFlowProvider);
+    final user = ref.read(authStateProvider).value;
+
+    if (user == null || bookingState.selectedDate == null || bookingState.selectedTime == null) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Missing booking details or authentication')));
+       setState(() => _isSubmitting = false);
+       return;
+    }
+
+    try {
+      final bookingId = const Uuid().v4();
+      final date = bookingState.selectedDate!;
+      // Simple time parsing for mock purposes
+      int hour = int.parse(bookingState.selectedTime!.split(':')[0]);
+      if (bookingState.selectedTime!.contains('PM') && hour != 12) hour += 12;
+
+      final bookingDateTime = DateTime(date.year, date.month, date.day, hour, 0);
+
+      final booking = BookingModel(
+        id: bookingId,
+        customerId: user.uid,
+        serviceIds: bookingState.selectedServices.map((s) => s.id).toList(),
+        dateTime: bookingDateTime,
+        totalDurationMinutes: bookingState.totalDuration,
+        totalPrice: bookingState.totalPrice,
+        notes: bookingState.notes,
+        createdAt: DateTime.now(),
+      );
+
+      await ref.read(bookingRepositoryProvider).createBooking(booking);
+      ref.read(bookingFlowProvider.notifier).clear();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking Confirmed!'), backgroundColor: Colors.green));
+        context.go('/profile');
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Widget _buildServicesStep(BookingFlowState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ListTile(
-          title: const Text('Bridal Makeup'),
-          subtitle: const Text('₹15,000 • 3 hrs'),
-          trailing: IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: () {}),
+        ...state.selectedServices.map((service) => ListTile(
+          title: Text(service.name),
+          subtitle: Text('₹${service.price.toStringAsFixed(0)} • ${service.durationMinutes} mins'),
+          trailing: IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () {
+            ref.read(bookingFlowProvider.notifier).removeService(service.id);
+          }),
           contentPadding: EdgeInsets.zero,
-        ),
+        )),
         TextButton.icon(
-          onPressed: () {},
+          onPressed: () => context.go('/services'),
           icon: const Icon(Icons.add),
           label: const Text('Add more services'),
         ),
@@ -105,7 +186,7 @@ class _BookScreenState extends State<BookScreen> {
     );
   }
 
-  Widget _buildDateTimeStep() {
+  Widget _buildDateTimeStep(BookingFlowState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,21 +198,26 @@ class _BookScreenState extends State<BookScreen> {
             scrollDirection: Axis.horizontal,
             itemCount: 10,
             itemBuilder: (context, index) {
-              final isSelected = index == 2;
-              return Container(
-                width: 60,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.deepPlum : Colors.white,
-                  border: Border.all(color: isSelected ? AppTheme.deepPlum : Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Oct', style: TextStyle(color: isSelected ? Colors.white : Colors.grey, fontSize: 12)),
-                    Text('${15 + index}', style: TextStyle(color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
-                  ],
+              final date = DateTime.now().add(Duration(days: index));
+              final isSelected = state.selectedDate?.day == date.day && state.selectedDate?.month == date.month;
+
+              return GestureDetector(
+                onTap: () => ref.read(bookingFlowProvider.notifier).setDate(date),
+                child: Container(
+                  width: 60,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppTheme.deepPlum : Colors.white,
+                    border: Border.all(color: isSelected ? AppTheme.deepPlum : Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(DateFormat('MMM').format(date), style: TextStyle(color: isSelected ? Colors.white : Colors.grey, fontSize: 12)),
+                      Text('${date.day}', style: TextStyle(color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+                    ],
+                  ),
                 ),
               );
             },
@@ -144,10 +230,10 @@ class _BookScreenState extends State<BookScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _timeChip('10:00 AM', false),
-            _timeChip('11:00 AM', true),
-            _timeChip('02:00 PM', false),
-            _timeChip('04:00 PM', false),
+            _timeChip('10:00 AM', state.selectedTime == '10:00 AM'),
+            _timeChip('11:00 AM', state.selectedTime == '11:00 AM'),
+            _timeChip('02:00 PM', state.selectedTime == '02:00 PM'),
+            _timeChip('04:00 PM', state.selectedTime == '04:00 PM'),
           ],
         )
       ],
@@ -158,17 +244,20 @@ class _BookScreenState extends State<BookScreen> {
     return ChoiceChip(
       label: Text(time),
       selected: isSelected,
-      onSelected: (val) {},
+      onSelected: (val) {
+        if (val) ref.read(bookingFlowProvider.notifier).setTime(time);
+      },
       selectedColor: AppTheme.roseGold.withAlpha(50),
       backgroundColor: Colors.white,
     );
   }
 
-  Widget _buildDetailsStep() {
+  Widget _buildDetailsStep(BookingFlowState state) {
     return Column(
       children: [
-        const TextField(
-          decoration: InputDecoration(
+        TextField(
+          onChanged: (val) => ref.read(bookingFlowProvider.notifier).setNotes(val),
+          decoration: const InputDecoration(
             labelText: 'Special requests or notes',
             hintText: 'e.g., Sensitive skin, prefer quiet session...',
           ),
@@ -194,24 +283,27 @@ class _BookScreenState extends State<BookScreen> {
     );
   }
 
-  Widget _buildConfirmStep() {
-    return const Column(
+  Widget _buildConfirmStep(BookingFlowState state) {
+    final dateStr = state.selectedDate != null ? DateFormat('MMM d, yyyy').format(state.selectedDate!) : 'Not selected';
+    final timeStr = state.selectedTime ?? 'Not selected';
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        SizedBox(height: 16),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Services'), Text('Bridal Makeup')]),
-        SizedBox(height: 8),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Date & Time'), Text('Oct 17, 11:00 AM')]),
-        SizedBox(height: 8),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Duration'), Text('3 Hours')]),
-        Divider(height: 32),
+        const Text('Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        const SizedBox(height: 16),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Services'), Flexible(child: Text('${state.selectedServices.length} items', textAlign: TextAlign.right))]),
+        const SizedBox(height: 8),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Date & Time'), Text('$dateStr, $timeStr')]),
+        const SizedBox(height: 8),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Duration'), Text('${state.totalDuration} mins')]),
+        const Divider(height: 32),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          Text('₹15,000', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.deepPlum)),
+          const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text('₹${state.totalPrice.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.deepPlum)),
         ]),
-        SizedBox(height: 16),
-        Text('Payment will be collected at the venue.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+        const SizedBox(height: 16),
+        const Text('Payment will be collected at the venue.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
       ],
     );
   }

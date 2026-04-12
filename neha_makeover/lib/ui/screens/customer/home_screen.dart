@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/theme.dart';
 import '../../../providers/service_provider.dart';
+import '../../widgets/assistant_widget.dart';
+
+class _AssistantWrapper extends StatelessWidget {
+  const _AssistantWrapper();
+
+  @override
+  Widget build(BuildContext context) {
+    return const AssistantWidget();
+  }
+}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -22,7 +32,7 @@ class HomeScreen extends ConsumerWidget {
             _buildSectionTitle(context, 'Signature Services'),
             servicesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Center(child: Text('Error loading services: \$e')),
+              error: (e, st) => Center(child: Text('Error loading services: $e')),
               data: (services) {
                 final popularServices = services.where((s) => s.isPopular).toList();
                 if (popularServices.isEmpty) {
@@ -43,7 +53,21 @@ class HomeScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: Open AI Assistant
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const Padding(
+              padding: EdgeInsets.only(top: 100.0),
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: _AssistantWrapper(), // Custom wrapper to avoid import cycles if needed, or direct import
+                ),
+              ),
+            ),
+          );
         },
         backgroundColor: AppTheme.roseGold,
         icon: const Icon(Icons.auto_awesome),

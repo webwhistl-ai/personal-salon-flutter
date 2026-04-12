@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/theme.dart';
 import '../../../providers/service_provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../models/service_model.dart';
 import '../../../models/service_category.dart';
+import '../../../providers/booking_flow_provider.dart';
 
 class ServicesScreen extends ConsumerWidget {
   const ServicesScreen({super.key});
@@ -21,7 +23,7 @@ class ServicesScreen extends ConsumerWidget {
       ),
       body: categoriesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.roseGold)),
-        error: (err, stack) => Center(child: Text('Error: \$err')),
+        error: (err, stack) => Center(child: Text('Error: $err')),
         data: (categories) {
           if (categories.isEmpty) {
             return const Center(child: Text('No categories available.'));
@@ -29,7 +31,7 @@ class ServicesScreen extends ConsumerWidget {
 
           return servicesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.roseGold)),
-            error: (err, stack) => Center(child: Text('Error loading services: \$err')),
+            error: (err, stack) => Center(child: Text('Error loading services: $err')),
             data: (services) {
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -47,35 +49,42 @@ class ServicesScreen extends ConsumerWidget {
           );
         },
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10, offset: const Offset(0, -2))
-          ],
-        ),
-        child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+      bottomNavigationBar: Consumer(
+        builder: (context, ref, child) {
+          final bookingState = ref.watch(bookingFlowProvider);
+          if (bookingState.selectedServices.isEmpty) return const SizedBox.shrink();
+
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10, offset: const Offset(0, -2))
+              ],
+            ),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('2 Services Selected', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Est. ₹4,500 • 90 mins', style: TextStyle(color: Colors.grey)),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${bookingState.selectedServices.length} Services Selected', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('Est. ₹${bookingState.totalPrice.toStringAsFixed(0)} • ${bookingState.totalDuration} mins', style: const TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.go('/book');
+                    },
+                    child: const Text('Continue to Book'),
+                  ),
                 ],
               ),
-              ElevatedButton(
-                onPressed: () {
-                  // Proceed to book
-                },
-                child: const Text('Continue to Book'),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        }
       ),
     );
   }
@@ -185,11 +194,23 @@ class ServicesScreen extends ConsumerWidget {
                 const Spacer(),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Add to Booking'),
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      return ElevatedButton(
+                        onPressed: () {
+                          ref.read(bookingFlowProvider.notifier).addService(service);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${service.name} added to booking'),
+                              backgroundColor: AppTheme.deepPlum,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: const Text('Add to Booking'),
+                      );
+                    }
                   ),
                 ),
                 const SizedBox(height: 16),
