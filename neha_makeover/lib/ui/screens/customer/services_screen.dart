@@ -106,26 +106,50 @@ class ServicesScreen extends ConsumerWidget {
   }
 
   Widget _buildServiceCard(BuildContext context, ServiceModel service) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10), // Very soft shadow
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (service.imageUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(service.imageUrl, height: 70, width: 70, fit: BoxFit.cover),
+              )
+            else
+              Container(
+                height: 70, width: 70,
+                decoration: BoxDecoration(color: AppTheme.ivory, borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.spa, color: AppTheme.mutedMauve),
+              ),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(service.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                   const SizedBox(height: 4),
-                  Text(service.shortDescription, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(service.shortDescription, style: const TextStyle(color: Colors.grey, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Text('₹${service.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.deepPlum)),
-                      const SizedBox(width: 16),
-                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                      Text('₹${service.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.deepPlum)),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.access_time, size: 12, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text('${service.durationMinutes} mins', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
@@ -133,20 +157,14 @@ class ServicesScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 16),
-            Column(
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    _showServiceDetails(context, service);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: const Size(0, 0),
-                  ),
-                  child: const Text('Add'),
-                ),
-              ],
+            const SizedBox(width: 12),
+            IconButton(
+              onPressed: () => _showServiceDetails(context, service),
+              style: IconButton.styleFrom(
+                backgroundColor: AppTheme.champagne.withAlpha(150),
+                foregroundColor: AppTheme.deepPlum,
+              ),
+              icon: const Icon(Icons.add),
             ),
           ],
         ),

@@ -77,57 +77,62 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildHeroSection(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 400,
-      decoration: const BoxDecoration(
-        color: AppTheme.champagne,
-        image: DecorationImage(
-          image: NetworkImage('https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=2069&auto=format&fit=crop'), // Placeholder luxury image
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(Colors.black26, BlendMode.darken),
+    return Hero(
+      tag: 'home_hero',
+      child: Container(
+        width: double.infinity,
+        height: 400,
+        decoration: const BoxDecoration(
+          color: AppTheme.champagne,
+          image: DecorationImage(
+            image: NetworkImage('https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=2069&auto=format&fit=crop'), // Placeholder luxury image
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Colors.black26, BlendMode.darken),
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Spacer(),
-            Text(
-              'Your Personal\nBeauty Concierge',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Spacer(),
+              Text(
+                'Your Personal\nBeauty Concierge',
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'A private, premium, women-only experience.',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: Colors.white.withAlpha(230),
+                      fontSize: 18,
+                    ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    child: const Text('Book Appointment'),
                   ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'A private, premium, women-only experience.',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.white.withAlpha(230),
+                  const SizedBox(width: 16),
+                  OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white),
+                    ),
+                    child: const Text('Explore Portfolio'),
                   ),
-            ),
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Book Appointment'),
-                ),
-                const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white),
-                  ),
-                  child: const Text('Explore Portfolio'),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -169,7 +174,7 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildSignatureServices(BuildContext context, List popularServices) {
     return SizedBox(
-      height: 280,
+      height: 290, // Slightly taller to accommodate shadow space
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -177,41 +182,55 @@ class HomeScreen extends ConsumerWidget {
         itemBuilder: (context, index) {
           final service = popularServices[index];
           return Container(
-            width: 200,
+            width: 220,
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            child: Card(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(15), // softer, lighter shadow
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  )
+                ],
+              ),
               clipBehavior: Clip.antiAlias,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (service.imageUrl.isNotEmpty)
-                    Image.network(service.imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover)
+                    Image.network(service.imageUrl, height: 130, width: double.infinity, fit: BoxFit.cover)
                   else
                     Container(
-                      height: 120,
+                      height: 130,
                       width: double.infinity,
-                      color: AppTheme.mutedMauve,
-                      child: const Icon(Icons.image, color: Colors.white54, size: 40),
+                      color: AppTheme.mutedMauve.withAlpha(100),
+                      child: const Icon(Icons.spa, color: Colors.white54, size: 40),
                     ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 2, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 4),
-                          Text('₹${service.price.toStringAsFixed(0)} • ${service.durationMinutes} mins', style: const TextStyle(color: Colors.grey)),
+                          const SizedBox(height: 6),
+                          Text('₹${service.price.toStringAsFixed(0)} • ${service.durationMinutes} mins', style: const TextStyle(color: Colors.grey, fontSize: 13)),
                           const Spacer(),
-                          TextButton(
-                            onPressed: () {},
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(50, 30),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              alignment: Alignment.centerLeft,
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                side: const BorderSide(color: AppTheme.roseGold),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                minimumSize: const Size(0, 36),
+                              ),
+                              child: const Text('Quick Book', style: TextStyle(fontSize: 13, color: AppTheme.deepPlum)),
                             ),
-                            child: const Text('Quick Book'),
                           )
                         ],
                       ),
