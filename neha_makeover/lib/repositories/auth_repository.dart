@@ -5,28 +5,21 @@ import '../models/user_model.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Future<void> _initGoogleSignIn() async {
-    await _googleSignIn.initialize();
-  }
-
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      await _initGoogleSignIn();
-
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate(scopeHint: ['email']);
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
-        // Since google_sign_in 7.x, the structure returned might only have idToken for certain flows.
-        // Or access token is retrieved differently, but Firebase mostly uses idToken.
       );
 
       UserCredential userCredential = await _auth.signInWithCredential(credential);
@@ -56,7 +49,6 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _initGoogleSignIn();
     await _googleSignIn.signOut();
     await _auth.signOut();
   }

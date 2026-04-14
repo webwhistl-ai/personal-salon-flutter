@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../theme/theme.dart';
+import '../../../core/utils/firebase_seeder.dart';
 
-class AdminDashboardContent extends StatelessWidget {
+class AdminDashboardContent extends StatefulWidget {
   const AdminDashboardContent({super.key});
+
+  @override
+  State<AdminDashboardContent> createState() => _AdminDashboardContentState();
+}
+
+class _AdminDashboardContentState extends State<AdminDashboardContent> {
+  bool _isSeeding = false;
 
   @override
   Widget build(BuildContext context) {
@@ -11,6 +19,32 @@ class AdminDashboardContent extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Dashboard Overview'),
         backgroundColor: Colors.white,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: OutlinedButton.icon(
+              onPressed: _isSeeding ? null : () async {
+                setState(() => _isSeeding = true);
+                try {
+                  await FirebaseSeeder().seedDatabase();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database seeded successfully!')));
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to seed: $e')));
+                  }
+                } finally {
+                  if (context.mounted) {
+                    setState(() => _isSeeding = false);
+                  }
+                }
+              },
+              icon: _isSeeding ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.download),
+              label: const Text('Seed Demo Data'),
+            ),
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
