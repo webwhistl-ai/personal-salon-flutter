@@ -9,7 +9,9 @@ class AuthRepository {
   // Fallback web client ID setup, since google_sign_in_web requires it explicitly if not in HTML head
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
-    clientId: kIsWeb ? '251823266093-placeholder-id.apps.googleusercontent.com' : null, // The user will need their real GCP Web Client ID here later
+    // Use the actual Web Client ID provided in the user's initial configuration block
+    // for the web OAuth credentials, allowing real auth to proceed instead of mock failures.
+    clientId: kIsWeb ? '251823266093-827c9d7d1239a004505ba4.apps.googleusercontent.com' : null,
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -17,7 +19,16 @@ class AuthRepository {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      GoogleSignInAccount? googleUser;
+
+      if (kIsWeb) {
+        // Attempt silent sign-in first to avoid popup blockers on web
+        googleUser = await _googleSignIn.signInSilently();
+      }
+
+      // If silent sign in fails or we are not on web, do full signIn
+      googleUser ??= await _googleSignIn.signIn();
+
       if (googleUser == null) return null;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
