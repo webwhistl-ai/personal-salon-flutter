@@ -22,7 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign in: \$e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed to sign in: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -38,7 +38,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign in as guest: \$e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed to sign in as guest: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {

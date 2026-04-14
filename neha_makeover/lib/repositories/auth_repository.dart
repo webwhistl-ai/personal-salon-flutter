@@ -1,11 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+  // Fallback web client ID setup, since google_sign_in_web requires it explicitly if not in HTML head
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    clientId: kIsWeb ? '251823266093-placeholder-id.apps.googleusercontent.com' : null, // The user will need their real GCP Web Client ID here later
+  );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -30,7 +35,7 @@ class AuthRepository {
 
       return userCredential;
     } catch (e) {
-      print('Google Sign-In Error: \$e');
+      print('Google Sign-In Error: $e');
       rethrow;
     }
   }
@@ -43,7 +48,7 @@ class AuthRepository {
       }
       return userCredential;
     } catch (e) {
-      print('Anonymous Sign-In Error: \$e');
+      print('Anonymous Sign-In Error: $e');
       rethrow;
     }
   }
