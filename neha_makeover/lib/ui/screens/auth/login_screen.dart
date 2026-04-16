@@ -75,8 +75,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               if (_isLoading)
                 const Center(child: CircularProgressIndicator(color: AppTheme.roseGold))
               else ...[
-                // Note: To fully support Web Identity Services, renderButton from google_sign_in_web
-                // can be implemented here via conditional imports, but signIn is used for the baseline cross-platform MVP.
                 ElevatedButton.icon(
                   onPressed: _handleGoogleSignIn,
                   icon: const Icon(Icons.login),

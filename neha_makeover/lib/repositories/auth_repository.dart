@@ -6,12 +6,11 @@ import '../models/user_model.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // Fallback web client ID setup, since google_sign_in_web requires it explicitly if not in HTML head
+  // Default GoogleSignIn instance. For web, the client ID must be configured in
+  // index.html using the `<meta name="google-signin-client_id" content="YOUR_WEB_CLIENT_ID.apps.googleusercontent.com">` tag,
+  // where the YOUR_WEB_CLIENT_ID is retrieved from the Google Cloud Console OAuth 2.0 Credentials page.
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
-    // Use the actual Web Client ID provided in the user's initial configuration block
-    // for the web OAuth credentials, allowing real auth to proceed instead of mock failures.
-    clientId: kIsWeb ? '251823266093-827c9d7d1239a004505ba4.apps.googleusercontent.com' : null,
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -46,7 +45,7 @@ class AuthRepository {
 
       return userCredential;
     } catch (e) {
-      print('Google Sign-In Error: $e');
+      debugPrint('Google Sign-In Error: $e');
       rethrow;
     }
   }
@@ -59,7 +58,7 @@ class AuthRepository {
       }
       return userCredential;
     } catch (e) {
-      print('Anonymous Sign-In Error: $e');
+      debugPrint('Anonymous Sign-In Error: $e');
       rethrow;
     }
   }
