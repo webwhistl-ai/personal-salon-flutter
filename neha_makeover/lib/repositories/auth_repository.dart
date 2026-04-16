@@ -6,11 +6,10 @@ import '../models/user_model.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // Default GoogleSignIn instance. For web, the client ID must be configured in
-  // index.html using the `<meta name="google-signin-client_id" content="YOUR_WEB_CLIENT_ID.apps.googleusercontent.com">` tag,
-  // where the YOUR_WEB_CLIENT_ID is retrieved from the Google Cloud Console OAuth 2.0 Credentials page.
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
+    // Use the actual Web Client ID provided from Google Cloud Console for web OAuth credentials.
+    clientId: kIsWeb ? '251823266093-l5bk15q3ckbmhi7k6ktoq3tjgge6j549.apps.googleusercontent.com' : null,
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
