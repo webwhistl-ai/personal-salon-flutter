@@ -10,18 +10,50 @@ import '../screens/customer/profile_screen.dart';
 import '../screens/admin/admin_layout.dart';
 import '../screens/auth/login_screen.dart';
 
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
+
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-final GoRouter appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: '/', // Start at home, do not force login
-  routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
-    ShellRoute(
+// Helper to convert Stream to Listenable for GoRouter
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen(
+      (dynamic _) => notifyListeners(),
+    );
+  }
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+GoRouter createRouter(WidgetRef ref) {
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/', // Start at home, do not force login
+    // Provide the auth state stream to trigger router re-evaluation
+    refreshListenable: GoRouterRefreshStream(ref.watch(authRepositoryProvider).authStateChanges),
+    redirect: (context, state) {
+      // Very simple redirect: If logged in and on login page, go to home
+      final isLoggedIn = ref.read(authStateProvider).value != null;
+      if (isLoggedIn && state.uri.path == '/login') {
+        return '/';
+      }
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) {
         int currentIndex = 0;
@@ -93,4 +125,5 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const AdminLayout(child: SizedBox()),
     ),
   ],
-);
+  );
+}

@@ -17,26 +17,28 @@ class AuthRepository {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      GoogleSignInAccount? googleUser;
+      UserCredential userCredential;
 
       if (kIsWeb) {
-        // Attempt silent sign-in first to avoid popup blockers on web
-        googleUser = await _googleSignIn.signInSilently();
+        // On web, use Firebase Auth's built-in Google Auth Provider with popup to bypass
+        // the google_sign_in package's strict GIS API requirements (like renderButton).
+        GoogleAuthProvider authProvider = GoogleAuthProvider();
+        authProvider.addScope('email');
+        userCredential = await _auth.signInWithPopup(authProvider);
+      } else {
+        // On mobile, use the standard google_sign_in flow
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) return null;
+
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        userCredential = await _auth.signInWithCredential(credential);
       }
-
-      // If silent sign in fails or we are not on web, do full signIn
-      googleUser ??= await _googleSignIn.signIn();
-
-      if (googleUser == null) return null;
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      UserCredential userCredential = await _auth.signInWithCredential(credential);
 
       if (userCredential.user != null) {
         await _ensureUserInFirestore(userCredential.user!);
@@ -68,18 +70,24 @@ class AuthRepository {
   }
 
   Future<void> _ensureUserInFirestore(User user, {bool isGuest = false}) async {
-    final docRef = _firestore.collection('users').doc(user.uid);
-    final docSnap = await docRef.get();
+    try {
+      final docRef = _firestore.collection('users').doc(user.uid);
+      final docSnap = await docRef.get();
 
-    if (!docSnap.exists) {
-      final newUser = UserModel(
-        id: user.uid,
-        email: user.email ?? '',
-        displayName: isGuest ? 'Guest User' : (user.displayName ?? 'New User'),
-        photoUrl: user.photoURL ?? '',
-        role: 'customer',
-      );
-      await docRef.set(newUser.toMap());
+      if (!docSnap.exists) {
+        final newUser = UserModel(
+          id: user.uid,
+          email: user.email ?? '',
+          displayName: isGuest ? 'Guest User' : (user.displayName ?? 'New User'),
+          photoUrl: user.photoURL ?? '',
+          role: 'customer',
+        );
+        await docRef.set(newUser.toMap());
+      }
+    } catch (e) {
+      // If Firestore rules deny access (e.g. missing default permissions in a new Firebase project),
+      // log the error but don't block the user from signing in on the client side.
+      debugPrint('Error syncing user to Firestore (Check security rules): $e');
     }
   }
 
