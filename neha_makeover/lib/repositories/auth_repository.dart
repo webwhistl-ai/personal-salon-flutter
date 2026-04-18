@@ -13,34 +13,17 @@ class AuthRepository {
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  AuthRepository() {
-    if (kIsWeb) {
-      _handleWebRedirectResult();
-    }
-  }
-
-  Future<void> _handleWebRedirectResult() async {
-    try {
-      final UserCredential result = await _auth.getRedirectResult();
-      if (result.user != null) {
-        await _ensureUserInFirestore(result.user!);
-      }
-    } catch (e) {
-      debugPrint('Error handling web redirect result: $e');
-    }
-  }
-
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
+      UserCredential userCredential;
+
       if (kIsWeb) {
-        // On web, use Firebase Auth's redirect to bypass modern browser popup blockers
-        // and Cross-Origin-Opener-Policy (COOP) errors.
+        // On web, use Firebase Auth's built-in Google Auth Provider with popup
         GoogleAuthProvider authProvider = GoogleAuthProvider();
         authProvider.addScope('email');
-        await _auth.signInWithRedirect(authProvider);
-        return null; // Return null because the page will unload and redirect.
+        userCredential = await _auth.signInWithPopup(authProvider);
       } else {
         // On mobile, use the standard google_sign_in flow
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -53,14 +36,14 @@ class AuthRepository {
           idToken: googleAuth.idToken,
         );
 
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-
-        if (userCredential.user != null) {
-          await _ensureUserInFirestore(userCredential.user!);
-        }
-
-        return userCredential;
+        userCredential = await _auth.signInWithCredential(credential);
       }
+
+      if (userCredential.user != null) {
+        await _ensureUserInFirestore(userCredential.user!);
+      }
+
+      return userCredential;
     } catch (e) {
       debugPrint('Google Sign-In Error: $e');
       rethrow;
