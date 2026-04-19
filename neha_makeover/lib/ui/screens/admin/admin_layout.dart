@@ -3,6 +3,7 @@ import '../../theme/theme.dart';
 import 'admin_dashboard_content.dart';
 import 'admin_bookings_screen.dart';
 import 'admin_services_screen.dart';
+import 'admin_portfolio_screen.dart';
 
 class AdminLayout extends StatefulWidget {
   final Widget child;
@@ -65,6 +66,8 @@ class _AdminLayoutState extends State<AdminLayout> {
         return const AdminBookingsScreen();
       case 2:
         return const AdminServicesScreen();
+      case 3:
+        return const AdminPortfolioScreen();
       default:
         return const Center(child: Text('Under Construction'));
     }

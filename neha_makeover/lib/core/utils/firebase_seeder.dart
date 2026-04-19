@@ -38,6 +38,7 @@ class FirebaseSeeder {
         suitabilityTag: 'Bridal',
         imageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=1000&auto=format&fit=crop',
         isPopular: true,
+        isVisible: true,
       ),
       ServiceModel(
         id: uuid.v4(),
@@ -50,6 +51,7 @@ class FirebaseSeeder {
         suitabilityTag: 'Party',
         imageUrl: 'https://images.unsplash.com/photo-1512496015851-a1dc8a47de1b?q=80&w=1000&auto=format&fit=crop',
         isPopular: true,
+        isVisible: true,
       ),
       ServiceModel(
         id: uuid.v4(),
@@ -62,6 +64,7 @@ class FirebaseSeeder {
         suitabilityTag: 'Anti-aging',
         imageUrl: 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=1000&auto=format&fit=crop',
         isPopular: true,
+        isVisible: true,
       ),
       ServiceModel(
         id: uuid.v4(),
@@ -74,6 +77,7 @@ class FirebaseSeeder {
         suitabilityTag: 'Dry Hair',
         imageUrl: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=1000&auto=format&fit=crop',
         isPopular: false,
+        isVisible: true,
       ),
       ServiceModel(
         id: uuid.v4(),
@@ -86,6 +90,7 @@ class FirebaseSeeder {
         suitabilityTag: 'Nails',
         imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=1000&auto=format&fit=crop',
         isPopular: false,
+        isVisible: true,
       ),
     ];
 

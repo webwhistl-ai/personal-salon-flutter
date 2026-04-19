@@ -72,33 +72,51 @@ class AssistantWidget extends ConsumerWidget {
               },
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
-            ),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: state.options.map((option) {
-                return ActionChip(
-                  label: Text(option),
-                  backgroundColor: AppTheme.champagne.withAlpha(100),
-                  side: const BorderSide(color: AppTheme.roseGold),
-                  onPressed: () {
-                    if (option == 'Yes, show me') {
-                      Navigator.of(context).pop();
-                      context.go('/services');
-                      ref.read(assistantProvider.notifier).handleOptionSelected('Start over');
-                    } else {
-                      ref.read(assistantProvider.notifier).handleOptionSelected(option);
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-          )
+          if (state.isProcessing)
+             Container(
+              padding: const EdgeInsets.all(16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.roseGold)),
+                  SizedBox(width: 12),
+                  Text('Processing...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: state.options.map((option) {
+                  return ActionChip(
+                    label: Text(option),
+                    backgroundColor: AppTheme.champagne.withAlpha(100),
+                    side: const BorderSide(color: AppTheme.roseGold),
+                    onPressed: () {
+                      if (option == 'Yes, show me') {
+                        Navigator.of(context).pop();
+                        context.go('/services');
+                        ref.read(assistantProvider.notifier).handleOptionSelected('Start over');
+                      } else {
+                        ref.read(assistantProvider.notifier).handleOptionSelected(option);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            )
         ],
       ),
     );

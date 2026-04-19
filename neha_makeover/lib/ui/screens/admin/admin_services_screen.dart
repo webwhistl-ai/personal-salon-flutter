@@ -44,33 +44,56 @@ class AdminServicesScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final service = services[index];
                 return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Stack(
+                          fit: StackFit.expand,
                           children: [
-                            const Icon(Icons.spa, size: 32, color: Colors.purple),
-                            Switch(value: service.isVisible, onChanged: (val) {
-                                // Real implementation would update Firestore
-                            }),
+                            if (service.imageUrl.isNotEmpty)
+                              Image.network(service.imageUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Icon(Icons.broken_image, color: Colors.grey)))
+                            else
+                              Container(color: Colors.grey.shade200, child: const Center(child: Icon(Icons.spa, size: 48, color: Colors.purple))),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                                decoration: BoxDecoration(color: Colors.white.withAlpha(200), borderRadius: BorderRadius.circular(12)),
+                                child: Switch(
+                                  value: service.isVisible,
+                                  onChanged: (val) {
+                                    // Real implementation would update Firestore
+                                  },
+                                  activeThumbColor: Colors.purple,
+                                ),
+                              ),
+                            )
                           ],
                         ),
-                        const Spacer(),
-                        Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 8),
-                        Text('₹${service.price.toStringAsFixed(0)} • ${service.durationMinutes} mins', style: const TextStyle(color: Colors.grey)),
-                        const SizedBox(height: 16),
-                        Row(
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            TextButton.icon(onPressed: () {}, icon: const Icon(Icons.edit, size: 16), label: const Text('Edit')),
-                            TextButton.icon(onPressed: () {}, icon: const Icon(Icons.delete, size: 16, color: Colors.red), label: const Text('Delete', style: TextStyle(color: Colors.red))),
+                            Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            Text('₹${service.price.toStringAsFixed(0)} • ${service.durationMinutes} mins', style: const TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                TextButton.icon(onPressed: () {}, icon: const Icon(Icons.edit, size: 16), label: const Text('Edit')),
+                                const Spacer(),
+                                IconButton(onPressed: () {}, icon: const Icon(Icons.delete, size: 20, color: Colors.red)),
+                              ],
+                            )
                           ],
-                        )
-                      ],
-                    ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
