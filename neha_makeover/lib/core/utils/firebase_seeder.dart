@@ -8,6 +8,7 @@ class FirebaseSeeder {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> seedDatabase() async {
+    print('Seeder: Starting database seed...');
     final WriteBatch batch = _firestore.batch();
     const uuid = Uuid();
 
@@ -142,6 +143,14 @@ class FirebaseSeeder {
       batch.set(docRef, item.toMap());
     }
 
-    await batch.commit();
+    print('Seeder: Committing batch to Firestore...');
+    try {
+      await batch.commit();
+      print('Seeder: Batch committed successfully.');
+    } catch (e, stack) {
+      print('Seeder Error: $e');
+      print('Seeder Stack: $stack');
+      rethrow;
+    }
   }
 }

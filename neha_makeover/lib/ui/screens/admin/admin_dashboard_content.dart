@@ -25,17 +25,27 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
             child: OutlinedButton.icon(
               onPressed: _isSeeding ? null : () async {
                 setState(() => _isSeeding = true);
+                print('AdminDashboard: Seed button pressed. State set to loading.');
                 try {
-                  await FirebaseSeeder().seedDatabase();
+                  await FirebaseSeeder().seedDatabase().timeout(const Duration(seconds: 15), onTimeout: () {
+                    throw Exception("Firestore batch commit timed out. Check your Firebase Database Rules (they might be set to 'false') or your network connection.");
+                  });
+                  print('AdminDashboard: Seed successful.');
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database seeded successfully!')));
                   }
-                } catch (e) {
+                } catch (e, stack) {
+                  print('AdminDashboard: Seed failed: $e\n$stack');
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to seed: $e')));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Failed to seed: $e'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 5),
+                    ));
                   }
                 } finally {
-                  if (context.mounted) {
+                  print('AdminDashboard: Restoring button state.');
+                  if (mounted) {
                     setState(() => _isSeeding = false);
                   }
                 }
