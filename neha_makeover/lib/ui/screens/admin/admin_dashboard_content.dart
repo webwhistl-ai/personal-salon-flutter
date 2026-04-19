@@ -27,8 +27,8 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                 setState(() => _isSeeding = true);
                 print('AdminDashboard: Seed button pressed. State set to loading.');
                 try {
-                  await FirebaseSeeder().seedDatabase().timeout(const Duration(seconds: 15), onTimeout: () {
-                    throw Exception("Firestore batch commit timed out. Check your Firebase Database Rules (they might be set to 'false') or your network connection.");
+                  await FirebaseSeeder().seedDatabase().timeout(const Duration(seconds: 30), onTimeout: () {
+                    throw Exception("Firestore database seed timed out. Check your Firebase Database Rules or network connection.");
                   });
                   print('AdminDashboard: Seed successful.');
                   if (context.mounted) {

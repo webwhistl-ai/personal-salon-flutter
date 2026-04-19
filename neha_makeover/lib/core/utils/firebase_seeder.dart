@@ -8,8 +8,7 @@ class FirebaseSeeder {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> seedDatabase() async {
-    print('Seeder: Starting database seed...');
-    final WriteBatch batch = _firestore.batch();
+    print('Seeder: Starting database seed (using individual writes instead of batch)...');
     const uuid = Uuid();
 
     // 1. Seed Categories
@@ -21,9 +20,9 @@ class FirebaseSeeder {
       ServiceCategory(id: uuid.v4(), name: 'Waxing', imageUrl: 'https://images.unsplash.com/photo-1596755389378-c31d21fd1273?q=80&w=1000&auto=format&fit=crop', sortOrder: 4),
     ];
 
+    print('Seeder: Writing categories...');
     for (var cat in categories) {
-      final docRef = _firestore.collection('categories').doc(cat.id);
-      batch.set(docRef, cat.toMap());
+      await _firestore.collection('categories').doc(cat.id).set(cat.toMap());
     }
 
     // 2. Seed Services
@@ -95,9 +94,9 @@ class FirebaseSeeder {
       ),
     ];
 
+    print('Seeder: Writing services...');
     for (var service in services) {
-      final docRef = _firestore.collection('services').doc(service.id);
-      batch.set(docRef, service.toMap());
+      await _firestore.collection('services').doc(service.id).set(service.toMap());
     }
 
     // 3. Seed Portfolio
@@ -114,7 +113,7 @@ class FirebaseSeeder {
         id: uuid.v4(),
         title: 'Evening Glam Cocktail',
         imageUrl: 'https://images.unsplash.com/photo-1512496015851-a1dc8a47de1b?q=80&w=1000&auto=format&fit=crop',
-        beforeImageUrl: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?q=80&w=1000&auto=format&fit=crop', // Example before
+        beforeImageUrl: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?q=80&w=1000&auto=format&fit=crop',
         tags: ['Party', 'Hair'],
         description: 'Full glam transformation with smokey eyes and voluminous Hollywood waves.',
         createdAt: DateTime.now().subtract(const Duration(days: 5)),
@@ -138,19 +137,11 @@ class FirebaseSeeder {
       ),
     ];
 
+    print('Seeder: Writing portfolio...');
     for (var item in portfolioItems) {
-      final docRef = _firestore.collection('portfolio').doc(item.id);
-      batch.set(docRef, item.toMap());
+      await _firestore.collection('portfolio').doc(item.id).set(item.toMap());
     }
 
-    print('Seeder: Committing batch to Firestore...');
-    try {
-      await batch.commit();
-      print('Seeder: Batch committed successfully.');
-    } catch (e, stack) {
-      print('Seeder Error: $e');
-      print('Seeder Stack: $stack');
-      rethrow;
-    }
+    print('Seeder: Database seed completed successfully.');
   }
 }
