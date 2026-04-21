@@ -27,9 +27,8 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                 setState(() => _isSeeding = true);
                 print('AdminDashboard: Seed button pressed. State set to loading.');
                 try {
-                  await FirebaseSeeder().seedDatabase().timeout(const Duration(seconds: 30), onTimeout: () {
-                    throw Exception("Firestore database seed timed out. Check your Firebase Database Rules or network connection.");
-                  });
+                  // We remove the overall timeout to see if individual writes succeed but are just slow.
+                  await FirebaseSeeder().seedDatabase();
                   print('AdminDashboard: Seed successful.');
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database seeded successfully!')));

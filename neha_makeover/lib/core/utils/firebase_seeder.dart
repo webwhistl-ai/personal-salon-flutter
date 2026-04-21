@@ -8,7 +8,7 @@ class FirebaseSeeder {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> seedDatabase() async {
-    print('Seeder: Starting database seed (using individual writes instead of batch)...');
+    print('Seeder: Starting database seed (using individual writes)...');
     const uuid = Uuid();
 
     // 1. Seed Categories
